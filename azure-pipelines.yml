@@ -1,24 +1,36 @@
 trigger:
-- main    # run on every push to main
+- main
 
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  pythonVersion: '3.11'
-
 steps:
 - task: UsePythonVersion@0
-  displayName: 'Set up Python'
   inputs:
-    versionSpec: '$(pythonVersion)'
-    addToPath: true
+    versionSpec: '3.11'
+  displayName: 'Use Python 3.11'
 
 - script: |
     python -m pip install --upgrade pip
-    if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    pip install -r requirements.txt
   displayName: 'Install dependencies'
 
-#- script: |
-#    pytest
-#  displayName: 'Run tests'
+- script: |
+    pytest \
+      --junitxml=test-results.xml \
+      --cov=. \
+      --cov-report=xml
+  displayName: 'Run tests with coverage'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: 'test-results.xml'
+    testResultsFormat: 'JUnit'
+    failTaskOnFailedTests: true
+  displayName: 'Publish test results'
+
+- task: PublishCodeCoverageResults@2
+  inputs:
+    codeCoverageTool: 'Cobertura'
+    summaryFileLocation: 'coverage.xml'
+  displayName: 'Publish coverage'
